@@ -346,6 +346,7 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
             gotoxy(i, j);
             cout << " ";
         }
+        Sleep(3);
     }
 }
 
