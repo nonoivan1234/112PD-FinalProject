@@ -1,12 +1,12 @@
-#include<iostream>
-#include<windows.h>
-#include<conio.h>
-#include<iomanip>
-#include<vector>
-#include<chrono>
-#include<ctime>
-#include<cstdlib>
-#include<cmath>
+#include <iostream>
+#include <windows.h>
+#include <conio.h>
+#include <iomanip>
+#include <vector>
+#include <chrono>
+#include <ctime>
+#include <cstdlib>
+#include <cmath>
 using namespace std;
 
 const double BorderLeft = 2;
@@ -16,25 +16,35 @@ const double BorderBottom = 28;
 const double PlayerSpeed = 2;
 const double BulletSpeed = 0.3;
 const double EnemySpeed = 0.05;
-const double EnemySpawnRate = 0.008;
+const double EnemySpawnRate = 0.01;
 const double xDiffAcceptable = 2;
 const double yDiffAcceptable = 1;
 
 void gotoxy(double x, double y)
 {
-    COORD coord = { x, y };
+    COORD coord = {x, y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
+class Bullet;
+class Character;
+class Player;
+class Enemy;
+class Game;
 
-class Character{
+class Character
+{
 protected:
     double x, y;
+
 public:
-    Character(double x, double y)  { this->x = x; this->y = y; };
-    double getX()                   { return x; };
-    double getY()                   { return y; };
-    bool IsHit(Character* character);
-    bool OutOfBorder() {return y >= BorderBottom - 3;};
+    Character(double x, double y)
+    {
+        this->x = x;
+        this->y = y;
+    };
+    double getX() { return x; };
+    double getY() { return y; };
+    bool OutOfBorder() { return y >= BorderBottom - 3; };
     virtual void Erase();
 };
 
@@ -44,33 +54,40 @@ void Character::Erase()
     cout << " ";
 }
 
-bool Character::IsHit(Character* character)
-{
-    if(abs(x - character->getX()) <= xDiffAcceptable && abs(y - character->getY()) <= yDiffAcceptable) return true;
-    return false;
-}
-
 class Bullet : public Character
 {
 private:
     double speed;
+
 public:
-    Bullet(double x, double y): Character(x, y) 
-        { this->x = x; this->y = y; this->speed = BulletSpeed;};
+    Bullet(double x, double y) : Character(x, y)
+    {
+        this->x = x;
+        this->y = y;
+        this->speed = BulletSpeed;
+    };
     void Draw();
     void Move();
-    bool IsHit(Character* character);
+    double getX() { return x; };
+    double getY() { return y; };
+    bool IsHit(Character *character);
     bool OutOfBorder();
 };
 
 class Player : public Character
 {
-friend class Bullet;
-friend class Game;
+    friend class Bullet;
+    friend class Game;
+
 private:
-    vector<Bullet*> bullets;
+    vector<Bullet *> bullets;
+
 public:
-    Player(double x, double y): Character(x, y) { this->x = x; this->y = y; };
+    Player(double x, double y) : Character(x, y)
+    {
+        this->x = x;
+        this->y = y;
+    };
     void Draw();
     void Move();
 };
@@ -81,16 +98,17 @@ void Player::Draw()
     cout << "O";
 }
 
-
 void Player::Move()
 {
-    if(kbhit())
+    if (kbhit())
     {
         Erase();
 
         char key = getch();
-        if(key == 'a' && x > BorderLeft) x -= PlayerSpeed;
-        if(key == 'd' && x < BorderRight) x += PlayerSpeed;
+        if (key == 'a' && x > BorderLeft)
+            x -= PlayerSpeed;
+        if (key == 'd' && x < BorderRight)
+            x += PlayerSpeed;
     }
 
     Draw();
@@ -109,26 +127,34 @@ void Bullet::Move()
     Draw();
 }
 
-bool Bullet::IsHit(Character* character)
+bool Bullet::IsHit(Character *character)
 {
-    if(abs(x - character->getX()) <= xDiffAcceptable && abs(y - character->getY()) <= yDiffAcceptable) return true;
+    if (abs(x - character->getX()) <= xDiffAcceptable && abs(y - character->getY()) <= yDiffAcceptable)
+        return true;
     return false;
 }
 
 bool Bullet::OutOfBorder()
 {
-    if(y < BorderTop) return true;
+    if (y < BorderTop)
+        return true;
     return false;
 }
 
 class Enemy : public Character
 {
-friend class Game;
+    friend class Game;
+
 private:
     double speed;
+
 public:
-    Enemy(double x, double y): Character(x, y) 
-        { this->x = x; this->y = y; this->speed = EnemySpeed;};
+    Enemy(double x, double y) : Character(x, y)
+    {
+        this->x = x;
+        this->y = y;
+        this->speed = EnemySpeed;
+    };
     void Draw();
     void Move();
 };
@@ -146,14 +172,17 @@ void Enemy::Move()
     Draw();
 }
 
-class Game{
-friend class Player;
-friend class Bullet;
-friend class Enemy;
+class Game
+{
+    friend class Player;
+    friend class Bullet;
+    friend class Enemy;
+
 private:
     int gameScore;
-    Player* player;
-    vector<Enemy*> enemies;
+    Player *player;
+    vector<Enemy *> enemies;
+
 public:
     Game();
     void Run();
@@ -161,7 +190,9 @@ public:
     void click();
     void DrawDeadline();
     void UpdateInfoBar(int gameScore, std::chrono::seconds leftTime);
-    void ClearScreen();
+    void DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y);
+    void Welcome();
+    void GameOver();
 };
 
 Game::Game()
@@ -172,48 +203,41 @@ Game::Game()
 
 void Game::Run()
 {
+    Welcome();
+
     DrawBackground();
     player->Draw();
 
     auto startTime = std::chrono::system_clock::now();
     auto endTime = startTime + std::chrono::seconds(60);
 
-    while(std::chrono::system_clock::now() < endTime)
+    while (std::chrono::system_clock::now() < endTime)
     {
-        if(gameScore < -10){
-            ClearScreen();
-            gotoxy(0, 0);
-            cout << "Game Over!\n";
+        if (gameScore < 0)
+        {
             break;
         }
-        if(rand() % (int)(1/EnemySpawnRate) == 0)
+        if (rand() % (int)(1 / EnemySpawnRate) == 0)
         {
             enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft), BorderTop));
             enemies[enemies.size() - 1]->Draw();
         }
 
-        for(int i = 0; i < enemies.size(); i++)
+        for (int i = 0; i < enemies.size(); i++)
         {
             enemies[i]->Move();
-            if(enemies[i]->IsHit(player))
+
+            if (enemies[i]->OutOfBorder())
             {
-                gameScore -= 10;
+                gameScore -= 20;
                 enemies[i]->Erase();
                 delete enemies[i];
                 enemies.erase(enemies.begin() + i);
             }
 
-            if(enemies[i]->OutOfBorder())
+            for (int j = 0; j < player->bullets.size(); j++)
             {
-                gameScore -= 5;
-                enemies[i]->Erase();
-                delete enemies[i];
-                enemies.erase(enemies.begin() + i);
-            }
-
-            for(int j = 0; j < player->bullets.size(); j++)
-            {
-                if(enemies[i]->IsHit(player->bullets[j]))
+                if (player->bullets[j]->IsHit(enemies[i]))
                 {
                     enemies[i]->Erase();
                     delete enemies[i];
@@ -226,10 +250,10 @@ void Game::Run()
             }
         }
 
-        for(auto bullet : player->bullets)
+        for (auto bullet : player->bullets)
         {
             bullet->Move();
-            if(bullet->OutOfBorder())
+            if (bullet->OutOfBorder())
             {
                 bullet->Erase();
                 delete bullet;
@@ -247,23 +271,24 @@ void Game::Run()
         Sleep(1);
     }
 
-    system("pause");
+    DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
+    GameOver();
 }
 
 void Game::DrawDeadline()
 {
-    for(int i = BorderLeft-1; i < (BorderLeft + BorderRight) / 2 - 3; i++)
+    for (int i = BorderLeft - 1; i < (BorderLeft + BorderRight) / 2 - 3; i++)
     {
-        gotoxy(i, BorderBottom-3);
+        gotoxy(i, BorderBottom - 3);
         cout << "-";
     }
 
     gotoxy((BorderLeft + BorderRight) / 2 - 3, BorderBottom - 3);
     cout << "DEADLINE";
 
-    for(int i = (BorderLeft + BorderRight) / 2 + 5; i <= BorderRight + 1; i++)
+    for (int i = (BorderLeft + BorderRight) / 2 + 5; i <= BorderRight + 1; i++)
     {
-        gotoxy(i, BorderBottom-3);
+        gotoxy(i, BorderBottom - 3);
         cout << "-";
     }
 }
@@ -272,7 +297,7 @@ void Game::DrawBackground()
 {
     DrawDeadline();
 
-    for(int i = BorderTop - 1; i <= BorderBottom + 1; i++)
+    for (int i = BorderTop - 1; i <= BorderBottom + 1; i++)
     {
         gotoxy(BorderLeft - 1, i);
         cout << "|";
@@ -284,34 +309,63 @@ void Game::DrawBackground()
 void Game::UpdateInfoBar(int gameScore, std::chrono::seconds leftTime)
 {
     gotoxy(BorderLeft, 0);
-    cout << "Score: " << setw(2) << gameScore;
+    cout << "Score: " << setw(3) << gameScore;
 
     gotoxy(BorderLeft + 20, 0);
     cout << "Time: " << setw(2) << leftTime.count() << "s";
 }
 
-void Game::ClearScreen()
-{
-    system("cls");
-}
-
 void Game::click()
 {
-    if(kbhit())
+    if (kbhit())
     {
         char key = getch();
-        if(key == ' ')
+        if (key == ' ')
         {
             player->bullets.push_back(new Bullet(player->getX(), player->getY() - 1));
             player->bullets[player->bullets.size() - 1]->Draw();
         }
-        else{
+        else
+        {
             player->Erase();
-            if(key == 'a' && player->getX() > BorderLeft) player->x -= PlayerSpeed;
-            if(key == 'd' && player->getX() < BorderRight) player->x += PlayerSpeed;
+            if (key == 'a' && player->getX() > BorderLeft)
+                player->x -= PlayerSpeed;
+            if (key == 'd' && player->getX() < BorderRight)
+                player->x += PlayerSpeed;
             player->Draw();
         }
     }
+}
+
+void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a certain space in the terminal
+{
+    for (int i = a_x; i <= b_x; i++)
+    {
+        for (int j = a_y; j <= b_y; j++)
+        {
+            gotoxy(i, j);
+            cout << " ";
+        }
+    }
+}
+
+void Game::Welcome()
+{
+    gotoxy(0, 0);
+    cout << "Welcome to the game!\n";
+    cout << "Press any key to start the game!\n";
+    getch();
+
+    DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
+}
+
+void Game::GameOver()
+{
+    gotoxy(0, 0);
+    cout << "Game Over!\n";
+    cout << "Your score is: " << gameScore << "\n";
+    cout << "Press any key to exit the game!\n";
+    getch();
 }
 
 int main()
