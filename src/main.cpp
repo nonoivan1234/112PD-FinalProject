@@ -212,6 +212,7 @@ public:
     void DrawDeadline();
     void UpdateInfoBar(int gameScore, std::chrono::seconds leftTime);
     void DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y);
+    void EnemiesSpawn();
     void EnemiesMove();
     void BulletsOutOfBorderCheck();
     void Welcome();
@@ -239,11 +240,7 @@ void Game::Run()
         if (gameScore < 0)
             break;
 
-        if (rand() % (int)(1.0 / EnemySpawnRate) == 0)
-        {
-            enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft), BorderTop));
-            enemies[enemies.size() - 1]->Draw();
-        }
+        EnemiesSpawn();
 
         EnemiesMove();
 
@@ -261,6 +258,15 @@ void Game::Run()
 
     DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
     GameOver();
+}
+
+void Game::EnemiesSpawn()
+{
+    if (rand() % (int)(1.0 / EnemySpawnRate) == 0)
+    {
+        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft), BorderTop));
+        enemies[enemies.size() - 1]->Draw();
+    }
 }
 
 void Game::EnemiesMove()
