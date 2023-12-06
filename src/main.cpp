@@ -10,14 +10,17 @@
 #include <fstream>
 using namespace std;
 
+int HistoryMaxScore = 0;
+
 #define KEY_ENTER 13
 #define KEY_LEFT 75
 #define KEY_RIGHT 77
 
 const int DeltaT = 50;
-const double BorderLeft = 2;
+const int GameTime = 30;
+const double BorderLeft = 10;
 const double BorderRight = 50;
-const double WindowWidth = 100;
+const double WindowWidth = 90;
 const double BorderTop = 2;
 const double BorderBottom = 28;
 const double PlayerSpeed = 2;
@@ -125,9 +128,9 @@ void Player::Move(char key)
 {
     Erase();
 
-    if ((key == 'a' || key == KEY_LEFT) && x > BorderLeft + 1)
+    if ((key == 'a' || key == KEY_LEFT) && x > BorderLeft + 2)
         x -= PlayerSpeed;
-    if ((key == 'd' || key == KEY_RIGHT) && x < BorderRight - 1)
+    if ((key == 'd' || key == KEY_RIGHT) && x < BorderRight - 2)
         x += PlayerSpeed;
 
     Draw();
@@ -158,7 +161,7 @@ void Bullet::explode()
     cout << "|";
     gotoxy(x, y + 1);
     cout << "|";
-    
+
     Sleep(100);
 
     for (int i = -1; i <= 1; i++)
@@ -232,7 +235,7 @@ class Game
 
 private:
     int gameScore;
-    Player* player;
+    Player *player;
     vector<Enemy *> enemies;
 
 public:
@@ -265,7 +268,8 @@ void Game::Run()
     player->Draw();
 
     auto startTime = std::chrono::system_clock::now();
-    auto endTime = startTime + std::chrono::seconds(60);
+    auto endTime = startTime + std::chrono::seconds(GameTime);
+    auto currentTime = startTime;
 
     while (std::chrono::system_clock::now() < endTime)
     {
@@ -282,8 +286,8 @@ void Game::Run()
 
         player->Move();
 
-        UpdateInfoBar(gameScore, std::chrono::duration_cast<std::chrono::seconds>(endTime - std::chrono::system_clock::now()));
-        // DrawDeadline();
+        currentTime = std::chrono::system_clock::now();
+        UpdateInfoBar(gameScore, std::chrono::duration_cast<std::chrono::seconds>(endTime - currentTime));
 
         Sleep(DeltaT);
     }
@@ -420,10 +424,8 @@ void Game::Welcome()
     fstream file;
 
     file.open("welcome.txt", ios::in);
-    if(!file.is_open())
-    {
+    if (!file.is_open())
         throw("welcome.txt File not found");
-    }
 
     string line;
     int i = 0;
@@ -433,6 +435,9 @@ void Game::Welcome()
 
         // keep the text in the middle of the screen
         int pos = (WindowWidth - len) / 2;
+
+        if (WindowWidth - len < 0)
+            throw("Window Width is too small");
 
         gotoxy(pos, BorderBottom / 2 - 5 + i++);
         cout << line << "\n";
@@ -456,19 +461,21 @@ void Game::GameOver()
 {
     fstream file;
     file.open("gameover.txt", ios::in);
-    if(!file.is_open())
-    {
+    if (!file.is_open())
         throw("gameover.txt File not found");
-    }
 
     string line;
     int i = 0;
+
     while (getline(file, line))
     {
         int len = line.length();
 
         // keep the text in the middle of the screen
         int pos = (WindowWidth - len) / 2;
+
+        if (WindowWidth - len < 0)
+            throw("Window Width is too small");
 
         gotoxy(pos, BorderBottom / 2 - 5 + i++);
         cout << line << "\n";
@@ -478,11 +485,27 @@ void Game::GameOver()
     gotoxy((WindowWidth - 18) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Your score is: " << gameScore << "\n";
 
+    if (gameScore > HistoryMaxScore)
+    {
+        HistoryMaxScore = gameScore;
+        gotoxy((WindowWidth - 15) / 2, BorderBottom / 2 - 5 + i++);
+        cout << "New Record!!!\n";
+    }
+    else
+    {
+        gotoxy((WindowWidth - 23) / 2, BorderBottom / 2 - 5 + i++);
+        cout << "Your best score is: " << HistoryMaxScore << "\n";
+    }
+
     gotoxy((WindowWidth - 28) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Press E/e to exit the game\n";
 
     gotoxy((WindowWidth - 34) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Or press S/s to start a new game\n";
+
+    if (WindowWidth - 34 < 0)
+        throw("Window Width is too small");
+
     while (1)
     {
         if (kbhit())
@@ -494,10 +517,11 @@ void Game::GameOver()
             {
                 DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
                 Game game;
-                try{
+                try
+                {
                     game.Run();
                 }
-                catch(const char* msg)
+                catch (const char *msg)
                 {
                     cerr << msg << endl;
                 }
@@ -510,14 +534,16 @@ int main()
 {
     Game game;
 
-    try{
+    try
+    {
         game.Run();
     }
-    catch(const char* msg)
+    catch (const char *msg)
     {
         cerr << msg << endl;
     }
 
+    system("pause");
     return 0;
 }
 
