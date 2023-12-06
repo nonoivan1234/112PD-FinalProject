@@ -14,6 +14,7 @@ using namespace std;
 #define KEY_LEFT 75
 #define KEY_RIGHT 77
 
+const int DeltaT = 50;
 const double BorderLeft = 2;
 const double BorderRight = 50;
 const double WindowWidth = 80;
@@ -53,6 +54,7 @@ public:
     double getY() { return y; };
     bool OutOfBorder() { return y >= BorderBottom - 3; };
     virtual void Erase();
+    virtual ~Character(){};
 };
 
 void Character::Erase()
@@ -77,8 +79,10 @@ public:
     void Move();
     double getX() { return x; };
     double getY() { return y; };
-    bool IsHit(Character *character);
+    bool Hit(Character *character);
     bool OutOfBorder();
+    void explode();
+    bool TouchDeadline() { return abs(y - BorderBottom) <= yDiffAcceptable * 2; };
 };
 
 class Player : public Character
@@ -121,9 +125,9 @@ void Player::Move(char key)
 {
     Erase();
 
-    if ((key == 'a' || key == KEY_LEFT) && x > BorderLeft)
+    if ((key == 'a' || key == KEY_LEFT) && x > BorderLeft + 1)
         x -= PlayerSpeed;
-    if ((key == 'd' || key == KEY_RIGHT) && x < BorderRight)
+    if ((key == 'd' || key == KEY_RIGHT) && x < BorderRight - 1)
         x += PlayerSpeed;
 
     Draw();
@@ -142,13 +146,38 @@ void Bullet::Move()
     Draw();
 }
 
+void Bullet::explode()
+{
+    gotoxy(x, y);
+    cout << "+";
+    gotoxy(x - 1, y);
+    cout << "-";
+    gotoxy(x + 1, y);
+    cout << "-";
+    gotoxy(x, y - 1);
+    cout << "|";
+    gotoxy(x, y + 1);
+    cout << "|";
+    
+    Sleep(100);
+
+    for (int i = -1; i <= 1; i++)
+    {
+        for (int j = -1; j <= 1; j++)
+        {
+            gotoxy(x + i, y + j);
+            cout << " ";
+        }
+    }
+}
+
 void Player::Shoot(vector<Bullet *> &bullets)
 {
     bullets.push_back(new Bullet(x, y - 1));
     bullets[bullets.size() - 1]->Draw();
 }
 
-bool Bullet::IsHit(Character *character)
+bool Bullet::Hit(Character *character)
 {
     if (abs(x - character->getX()) <= xDiffAcceptable && abs(y - character->getY()) <= yDiffAcceptable)
         return true;
@@ -208,7 +237,7 @@ public:
     Game();
     void Run();
     void DrawBackground();
-    void click();
+    void UserClick();
     void DrawDeadline();
     void UpdateInfoBar(int gameScore, std::chrono::seconds leftTime);
     void DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y);
@@ -221,7 +250,7 @@ public:
 
 Game::Game()
 {
-    player = new Player(10, BorderBottom);
+    player = new Player((BorderLeft + BorderRight) / 2, BorderBottom);
     gameScore = 0;
 }
 
@@ -246,14 +275,14 @@ void Game::Run()
 
         BulletsOutOfBorderCheck();
 
-        click();
+        UserClick();
 
         player->Move();
 
         UpdateInfoBar(gameScore, std::chrono::duration_cast<std::chrono::seconds>(endTime - std::chrono::system_clock::now()));
-        DrawDeadline();
+        // DrawDeadline();
 
-        Sleep(20);
+        Sleep(DeltaT);
     }
 
     DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
@@ -264,14 +293,14 @@ void Game::EnemiesSpawn()
 {
     if (rand() % (int)(1.0 / EnemySpawnRate) == 0)
     {
-        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft), BorderTop));
+        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft - 2) + 2, BorderTop));
         enemies[enemies.size() - 1]->Draw();
     }
 }
 
 void Game::EnemiesMove()
 {
-    for (int i = 0; i < enemies.size(); i++)
+    for (int i = 0; i < (int)enemies.size(); i++)
     {
         enemies[i]->Move();
 
@@ -283,15 +312,14 @@ void Game::EnemiesMove()
             enemies.erase(enemies.begin() + i);
         }
 
-        for (int j = 0; j < player->bullets.size(); j++)
+        for (int j = 0; j < (int)(player->bullets.size()); j++)
         {
-            if (player->bullets[j]->IsHit(enemies[i]))
+            if (player->bullets[j]->Hit(enemies[i]))
             {
                 enemies[i]->Erase();
-                delete enemies[i];
                 enemies.erase(enemies.begin() + i);
+                player->bullets[j]->explode();
                 player->bullets[j]->Erase();
-                delete player->bullets[j];
                 player->bullets.erase(player->bullets.begin() + j);
                 gameScore += 10;
             }
@@ -301,14 +329,17 @@ void Game::EnemiesMove()
 
 void Game::BulletsOutOfBorderCheck()
 {
-    for (auto bullet : player->bullets)
+    for (int i = 0; i < (int)player->bullets.size(); i++)
     {
-        bullet->Move();
-        if (bullet->OutOfBorder())
+        player->bullets[i]->Move();
+        if (player->bullets[i]->TouchDeadline())
         {
-            bullet->Erase();
-            delete bullet;
-            player->bullets.erase(player->bullets.begin());
+            DrawDeadline();
+        }
+        if (player->bullets[i]->OutOfBorder())
+        {
+            player->bullets[i]->Erase();
+            player->bullets.erase(player->bullets.begin() + i);
         }
     }
 }
@@ -353,7 +384,7 @@ void Game::UpdateInfoBar(int gameScore, std::chrono::seconds leftTime)
     cout << "Time: " << setw(2) << leftTime.count() << "s";
 }
 
-void Game::click()
+void Game::UserClick()
 {
     if (kbhit())
     {
@@ -400,7 +431,7 @@ void Game::Welcome()
     }
     file.close();
 
-    while(1)
+    while (1)
     {
         if (kbhit())
         {
@@ -436,6 +467,9 @@ void Game::GameOver()
 
     gotoxy((WindowWidth - 28) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Press E/e to exit the game\n";
+
+    gotoxy((WindowWidth - 34) / 2, BorderBottom / 2 - 5 + i++);
+    cout << "Or press S/s to start a new game\n";
     while (1)
     {
         if (kbhit())
@@ -443,6 +477,12 @@ void Game::GameOver()
             char key = getch();
             if (key == 'e' || key == 'E')
                 break;
+            else if (key == 's' || key == 'S')
+            {
+                DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+                Game game;
+                game.Run();
+            }
         }
     }
 }
