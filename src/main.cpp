@@ -10,21 +10,25 @@
 #include <fstream>
 using namespace std;
 
+#define KEY_ENTER 13
+#define KEY_LEFT 75
+#define KEY_RIGHT 77
+
 const double BorderLeft = 2;
 const double BorderRight = 50;
 const double WindowWidth = 80;
 const double BorderTop = 2;
 const double BorderBottom = 28;
 const double PlayerSpeed = 2;
-const double BulletSpeed = 0.3;
-const double EnemySpeed = 0.07;
-const double EnemySpawnRate = 0.015;
+const double BulletSpeed = 0.5;
+const double EnemySpeed = 0.2;
+const double EnemySpawnRate = 0.02;
 const double xDiffAcceptable = 2;
 const double yDiffAcceptable = 1;
 
 void gotoxy(double x, double y)
 {
-    COORD coord = {x, y};
+    COORD coord = {(short)x, (short)y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
@@ -92,7 +96,9 @@ public:
         this->y = y;
     };
     void Draw();
+    void Move(char key);
     void Move();
+    void Shoot(vector<Bullet *> &bullets);
 };
 
 void Player::Draw()
@@ -105,14 +111,20 @@ void Player::Move()
 {
     if (kbhit())
     {
-        Erase();
-
         char key = getch();
-        if (key == 'a' && x > BorderLeft)
-            x -= PlayerSpeed;
-        if (key == 'd' && x < BorderRight)
-            x += PlayerSpeed;
+        if (key == 'a' || key == 'd' || key == KEY_LEFT || key == KEY_RIGHT)
+            Move(key);
     }
+}
+
+void Player::Move(char key)
+{
+    Erase();
+
+    if ((key == 'a' || key == KEY_LEFT) && x > BorderLeft)
+        x -= PlayerSpeed;
+    if ((key == 'd' || key == KEY_RIGHT) && x < BorderRight)
+        x += PlayerSpeed;
 
     Draw();
 }
@@ -128,6 +140,12 @@ void Bullet::Move()
     Erase();
     y -= speed;
     Draw();
+}
+
+void Player::Shoot(vector<Bullet *> &bullets)
+{
+    bullets.push_back(new Bullet(x, y - 1));
+    bullets[bullets.size() - 1]->Draw();
 }
 
 bool Bullet::IsHit(Character *character)
@@ -202,7 +220,7 @@ public:
 
 Game::Game()
 {
-    player = new Player(10, BorderBottom - 1);
+    player = new Player(10, BorderBottom);
     gameScore = 0;
 }
 
@@ -238,7 +256,7 @@ void Game::Run()
         UpdateInfoBar(gameScore, std::chrono::duration_cast<std::chrono::seconds>(endTime - std::chrono::system_clock::now()));
         DrawDeadline();
 
-        Sleep(1);
+        Sleep(20);
     }
 
     DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
@@ -334,19 +352,13 @@ void Game::click()
     if (kbhit())
     {
         char key = getch();
-        if (key == ' ')
+        if (key == ' ' || key == KEY_ENTER)
         {
-            player->bullets.push_back(new Bullet(player->getX(), player->getY() - 1));
-            player->bullets[player->bullets.size() - 1]->Draw();
+            player->Shoot(player->bullets);
         }
         else
         {
-            player->Erase();
-            if (key == 'a' && player->getX() > BorderLeft)
-                player->x -= PlayerSpeed;
-            if (key == 'd' && player->getX() < BorderRight)
-                player->x += PlayerSpeed;
-            player->Draw();
+            player->Move(key);
         }
     }
 }
@@ -360,7 +372,7 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
             gotoxy(i, j);
             cout << " ";
         }
-        Sleep(3);
+        Sleep(2);
     }
 }
 
@@ -381,20 +393,51 @@ void Game::Welcome()
         cout << line << "\n";
     }
     file.close();
-    getch();
+
+    while(1)
+    {
+        if (kbhit())
+        {
+            char key = getch();
+            if (key == 's' || key == 'S')
+                break;
+        }
+    }
 
     DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
 }
 
 void Game::GameOver()
 {
-    gotoxy(0, 0);
-    cout << "Game Over!\n";
+    fstream file;
+    file.open("gameover.txt", ios::in);
+    string line;
+    int i = 0;
+    while (getline(file, line))
+    {
+        int len = line.length();
+
+        // keep the text in the middle of the screen
+        int pos = (WindowWidth - len) / 2;
+
+        gotoxy(pos, BorderBottom / 2 - 5 + i++);
+        cout << line << "\n";
+    }
+    file.close();
+
+    gotoxy((WindowWidth - 18) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Your score is: " << gameScore << "\n";
 
+    gotoxy((WindowWidth - 28) / 2, BorderBottom / 2 - 5 + i++);
+    cout << "Press E/e to exit the game\n";
     while (1)
     {
-        getch();
+        if (kbhit())
+        {
+            char key = getch();
+            if (key == 'e' || key == 'E')
+                break;
+        }
     }
 }
 

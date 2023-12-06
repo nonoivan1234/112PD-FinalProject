@@ -6,4 +6,4 @@
  ##  ##       ##     ##   ## ##   ##       ##        ##     ## 
 #### ########  #######     ###    ######## ##        ########  
 
-Press any key to start the Game
+Press S/s to start the Game
