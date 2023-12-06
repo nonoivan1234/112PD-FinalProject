@@ -17,13 +17,13 @@ using namespace std;
 const int DeltaT = 50;
 const double BorderLeft = 2;
 const double BorderRight = 50;
-const double WindowWidth = 80;
+const double WindowWidth = 100;
 const double BorderTop = 2;
 const double BorderBottom = 28;
 const double PlayerSpeed = 2;
 const double BulletSpeed = 0.5;
-const double EnemySpeed = 0.2;
-const double EnemySpawnRate = 0.02;
+const double EnemySpeed = 0.3;
+const double EnemySpawnRate = 0.03;
 const double xDiffAcceptable = 2;
 const double yDiffAcceptable = 1;
 
@@ -52,7 +52,7 @@ public:
     };
     double getX() { return x; };
     double getY() { return y; };
-    bool OutOfBorder() { return y >= BorderBottom - 3; };
+    bool OutOfBorder() { return (y >= BorderBottom - 3) || (y < BorderTop); };
     virtual void Erase();
     virtual ~Character(){};
 };
@@ -197,12 +197,14 @@ class Enemy : public Character
 
 private:
     double speed;
+    char pic;
 
 public:
     Enemy(double x, double y) : Character(x, y)
     {
         this->x = x;
         this->y = y;
+        this->pic = 'X';
         this->speed = EnemySpeed;
     };
     void Draw();
@@ -212,7 +214,7 @@ public:
 void Enemy::Draw()
 {
     gotoxy(x, y);
-    cout << "X";
+    cout << this->pic;
 }
 
 void Enemy::Move()
@@ -230,7 +232,7 @@ class Game
 
 private:
     int gameScore;
-    Player *player;
+    Player* player;
     vector<Enemy *> enemies;
 
 public:
@@ -246,6 +248,7 @@ public:
     void BulletsOutOfBorderCheck();
     void Welcome();
     void GameOver();
+    ~Game(){};
 };
 
 Game::Game()
@@ -308,7 +311,6 @@ void Game::EnemiesMove()
         {
             gameScore -= 20;
             enemies[i]->Erase();
-            delete enemies[i];
             enemies.erase(enemies.begin() + i);
         }
 
@@ -416,7 +418,13 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
 void Game::Welcome()
 {
     fstream file;
+
     file.open("welcome.txt", ios::in);
+    if(!file.is_open())
+    {
+        throw("welcome.txt File not found");
+    }
+
     string line;
     int i = 0;
     while (getline(file, line))
@@ -448,6 +456,11 @@ void Game::GameOver()
 {
     fstream file;
     file.open("gameover.txt", ios::in);
+    if(!file.is_open())
+    {
+        throw("gameover.txt File not found");
+    }
+
     string line;
     int i = 0;
     while (getline(file, line))
@@ -481,7 +494,13 @@ void Game::GameOver()
             {
                 DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
                 Game game;
-                game.Run();
+                try{
+                    game.Run();
+                }
+                catch(const char* msg)
+                {
+                    cerr << msg << endl;
+                }
             }
         }
     }
@@ -490,7 +509,14 @@ void Game::GameOver()
 int main()
 {
     Game game;
-    game.Run();
+
+    try{
+        game.Run();
+    }
+    catch(const char* msg)
+    {
+        cerr << msg << endl;
+    }
 
     return 0;
 }
