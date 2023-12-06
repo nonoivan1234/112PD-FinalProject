@@ -7,16 +7,18 @@
 #include <ctime>
 #include <cstdlib>
 #include <cmath>
+#include <fstream>
 using namespace std;
 
 const double BorderLeft = 2;
 const double BorderRight = 50;
+const double WindowWidth = 80;
 const double BorderTop = 2;
 const double BorderBottom = 28;
 const double PlayerSpeed = 2;
 const double BulletSpeed = 0.3;
-const double EnemySpeed = 0.05;
-const double EnemySpawnRate = 0.01;
+const double EnemySpeed = 0.07;
+const double EnemySpawnRate = 0.015;
 const double xDiffAcceptable = 2;
 const double yDiffAcceptable = 1;
 
@@ -25,6 +27,7 @@ void gotoxy(double x, double y)
     COORD coord = {x, y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
+
 class Bullet;
 class Character;
 class Player;
@@ -191,6 +194,8 @@ public:
     void DrawDeadline();
     void UpdateInfoBar(int gameScore, std::chrono::seconds leftTime);
     void DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y);
+    void EnemiesMove();
+    void BulletsOutOfBorderCheck();
     void Welcome();
     void GameOver();
 };
@@ -214,52 +219,17 @@ void Game::Run()
     while (std::chrono::system_clock::now() < endTime)
     {
         if (gameScore < 0)
-        {
             break;
-        }
-        if (rand() % (int)(1 / EnemySpawnRate) == 0)
+
+        if (rand() % (int)(1.0 / EnemySpawnRate) == 0)
         {
             enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft), BorderTop));
             enemies[enemies.size() - 1]->Draw();
         }
 
-        for (int i = 0; i < enemies.size(); i++)
-        {
-            enemies[i]->Move();
+        EnemiesMove();
 
-            if (enemies[i]->OutOfBorder())
-            {
-                gameScore -= 20;
-                enemies[i]->Erase();
-                delete enemies[i];
-                enemies.erase(enemies.begin() + i);
-            }
-
-            for (int j = 0; j < player->bullets.size(); j++)
-            {
-                if (player->bullets[j]->IsHit(enemies[i]))
-                {
-                    enemies[i]->Erase();
-                    delete enemies[i];
-                    enemies.erase(enemies.begin() + i);
-                    player->bullets[j]->Erase();
-                    delete player->bullets[j];
-                    player->bullets.erase(player->bullets.begin() + j);
-                    gameScore += 10;
-                }
-            }
-        }
-
-        for (auto bullet : player->bullets)
-        {
-            bullet->Move();
-            if (bullet->OutOfBorder())
-            {
-                bullet->Erase();
-                delete bullet;
-                player->bullets.erase(player->bullets.begin());
-            }
-        }
+        BulletsOutOfBorderCheck();
 
         click();
 
@@ -273,6 +243,50 @@ void Game::Run()
 
     DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
     GameOver();
+}
+
+void Game::EnemiesMove()
+{
+    for (int i = 0; i < enemies.size(); i++)
+    {
+        enemies[i]->Move();
+
+        if (enemies[i]->OutOfBorder())
+        {
+            gameScore -= 20;
+            enemies[i]->Erase();
+            delete enemies[i];
+            enemies.erase(enemies.begin() + i);
+        }
+
+        for (int j = 0; j < player->bullets.size(); j++)
+        {
+            if (player->bullets[j]->IsHit(enemies[i]))
+            {
+                enemies[i]->Erase();
+                delete enemies[i];
+                enemies.erase(enemies.begin() + i);
+                player->bullets[j]->Erase();
+                delete player->bullets[j];
+                player->bullets.erase(player->bullets.begin() + j);
+                gameScore += 10;
+            }
+        }
+    }
+}
+
+void Game::BulletsOutOfBorderCheck()
+{
+    for (auto bullet : player->bullets)
+    {
+        bullet->Move();
+        if (bullet->OutOfBorder())
+        {
+            bullet->Erase();
+            delete bullet;
+            player->bullets.erase(player->bullets.begin());
+        }
+    }
 }
 
 void Game::DrawDeadline()
@@ -352,12 +366,24 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
 
 void Game::Welcome()
 {
-    gotoxy(0, 0);
-    cout << "Welcome to the game!\n";
-    cout << "Press any key to start the game!\n";
+    fstream file;
+    file.open("welcome.txt", ios::in);
+    string line;
+    int i = 0;
+    while (getline(file, line))
+    {
+        int len = line.length();
+
+        // keep the text in the middle of the screen
+        int pos = (WindowWidth - len) / 2;
+
+        gotoxy(pos, BorderBottom / 2 - 5 + i++);
+        cout << line << "\n";
+    }
+    file.close();
     getch();
 
-    DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
+    DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
 }
 
 void Game::GameOver()
@@ -365,8 +391,11 @@ void Game::GameOver()
     gotoxy(0, 0);
     cout << "Game Over!\n";
     cout << "Your score is: " << gameScore << "\n";
-    cout << "Press any key to exit the game!\n";
-    getch();
+
+    while (1)
+    {
+        getch();
+    }
 }
 
 int main()
@@ -376,3 +405,5 @@ int main()
 
     return 0;
 }
+
+// Note: Online Cool Text Generator: https://www.askapache.com/online-tools/figlet-ascii/
