@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <fstream>
+#include <string>
 #include "game.h"
 using namespace std;
 
@@ -77,8 +78,7 @@ void Player::Move()
     if (kbhit())
     {
         char key = getch();
-        if (key == 'a' || key == 'd' || key == KEY_LEFT || key == KEY_RIGHT)
-            Move(key);
+        Move(key);
     }
 }
 
@@ -86,9 +86,9 @@ void Player::Move(char key)
 {
     Erase();
 
-    if ((key == 'a' || key == KEY_LEFT) && x > BorderLeft + 2)
+    if ((key == 'a' || key == KEY_LEFT) && x - PlayerSpeed > BorderLeft + 2)
         x -= PlayerSpeed;
-    if ((key == 'd' || key == KEY_RIGHT) && x < BorderRight - 2)
+    if ((key == 'd' || key == KEY_RIGHT) && x + PlayerSpeed < BorderRight - 2)
         x += PlayerSpeed;
 
     Draw();
@@ -177,11 +177,14 @@ void Enemy::Move()
 Game::Game()
 {
     player = new Player((BorderLeft + BorderRight) / 2, BorderBottom);
-    gameScore = 0;
+    gameScore = InitScore;
 }
 
 void Game::Run()
 {
+    system("chcp 65001");
+    system("cls");
+
     Welcome();
 
     DrawBackground();
@@ -193,7 +196,7 @@ void Game::Run()
 
     while (std::chrono::system_clock::now() < endTime)
     {
-        if (gameScore < 0)
+        if (gameScore < EndScore)
             break;
 
         EnemiesSpawn();
@@ -220,7 +223,7 @@ void Game::EnemiesSpawn()
 {
     if (rand() % (int)(1.0 / EnemySpawnRate) == 0)
     {
-        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft - 2) + 2, BorderTop));
+        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft - 4) + 2, BorderTop));
         enemies[enemies.size() - 1]->Draw();
     }
 }
@@ -233,7 +236,7 @@ void Game::EnemiesMove()
 
         if (enemies[i]->OutOfBorder())
         {
-            gameScore -= 20;
+            gameScore -= MinusPerMiss;
             enemies[i]->Erase();
             enemies.erase(enemies.begin() + i);
         }
@@ -247,7 +250,6 @@ void Game::EnemiesMove()
                 player->bullets[j]->explode();
                 player->bullets[j]->Erase();
                 player->bullets.erase(player->bullets.begin() + j);
-                gameScore += 10;
             }
         }
     }
@@ -301,10 +303,10 @@ void Game::DrawBackground()
     }
 }
 
-void Game::UpdateInfoBar(int gameScore, std::chrono::seconds leftTime)
+void Game::UpdateInfoBar(double gameScore, std::chrono::seconds leftTime)
 {
     gotoxy(BorderLeft, 0);
-    cout << "Score: " << setw(3) << gameScore;
+    cout << "GPA: " << setw(3) << gameScore;
 
     gotoxy(BorderLeft + 20, 0);
     cout << "Time: " << setw(2) << leftTime.count() << "s";
@@ -339,13 +341,12 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
     }
 }
 
-void Game::Welcome()
-{
+int Game::NewWindow(string File){
     fstream file;
 
-    file.open("welcome.txt", ios::in);
+    file.open(File, ios::in);
     if (!file.is_open())
-        throw("welcome.txt File not found");
+        throw(File + " File not found");
 
     string line;
     int i = 0;
@@ -356,13 +357,33 @@ void Game::Welcome()
         // keep the text in the middle of the screen
         int pos = (WindowWidth - len) / 2;
 
-        if (WindowWidth - len < 0)
-            throw("Window Width is too small");
+        // if (WindowWidth - len < 0)
+        //     throw("Window Width is too small");
 
         gotoxy(pos, BorderBottom / 2 - 5 + i++);
         cout << line << "\n";
     }
     file.close();
+
+    return i;
+}
+
+void Game::ReadNextPage()
+{
+    while (1)
+    {
+        if (kbhit())
+        {
+            char key = getch();
+            if (key == 'r' || key == 'R')
+                break;
+        }
+    }
+}
+
+void Game::Welcome()
+{
+    NewWindow("welcome.txt");    
 
     while (1)
     {
@@ -371,6 +392,18 @@ void Game::Welcome()
             char key = getch();
             if (key == 's' || key == 'S')
                 break;
+            if (key == 'r' || key == 'R'){
+                DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+                NewWindow("Guide/Page1.txt");
+                
+                ReadNextPage();
+
+                DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+                NewWindow("Guide/Page2.txt");
+                
+                ReadNextPage();
+                break;
+            }
         }
     }
 
@@ -379,28 +412,7 @@ void Game::Welcome()
 
 void Game::GameOver()
 {
-    fstream file;
-    file.open("gameover.txt", ios::in);
-    if (!file.is_open())
-        throw("gameover.txt File not found");
-
-    string line;
-    int i = 0;
-
-    while (getline(file, line))
-    {
-        int len = line.length();
-
-        // keep the text in the middle of the screen
-        int pos = (WindowWidth - len) / 2;
-
-        if (WindowWidth - len < 0)
-            throw("Window Width is too small");
-
-        gotoxy(pos, BorderBottom / 2 - 5 + i++);
-        cout << line << "\n";
-    }
-    file.close();
+    int i = NewWindow("gameover.txt");
 
     gotoxy((WindowWidth - 18) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Your score is: " << gameScore << "\n";

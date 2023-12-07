@@ -2,6 +2,7 @@
 #include <vector>
 #include <chrono>
 #include <ctime>
+#include <string>
 #include "game.h"
 using namespace std;
 

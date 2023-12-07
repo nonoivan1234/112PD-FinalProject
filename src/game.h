@@ -2,6 +2,9 @@
 #define KEY_LEFT 75
 #define KEY_RIGHT 77
 
+const double InitScore = 4.3;
+const double MinusPerMiss = 0.5;
+const double EndScore = 1;
 const int DeltaT = 50;
 const int GameTime = 30;
 const double BorderLeft = 10;
@@ -9,10 +12,10 @@ const double BorderRight = 50;
 const double WindowWidth = 90;
 const double BorderTop = 2;
 const double BorderBottom = 28;
-const double PlayerSpeed = 3;
-const double BulletSpeed = 0.6;
-const double EnemySpeed = 0.5;
-const double EnemySpawnRate = 0.04;
+const double PlayerSpeed = 4;
+const double BulletSpeed = 0.8;
+const double EnemySpeed = 0.3;
+const double EnemySpawnRate = 0.45;
 const int ExplodeTime = 100;
 const double xDiffAcceptable = 2;
 const double yDiffAcceptable = 1;
@@ -85,7 +88,7 @@ class Game
     friend class Enemy;
 
 private:
-    int gameScore;
+    double gameScore;
     Player *player;
     std::vector<Enemy *> enemies;
 
@@ -95,11 +98,13 @@ public:
     void DrawBackground();
     void UserClick();
     void DrawDeadline();
-    void UpdateInfoBar(int gameScore, std::chrono::seconds leftTime);
+    void UpdateInfoBar(double gameScore, std::chrono::seconds leftTime);
     void DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y);
     void EnemiesSpawn();
     void EnemiesMove();
     void BulletsOutOfBorderCheck();
+    void ReadNextPage();
+    int NewWindow(std::string file);
     void Welcome();
     void GameOver();
     ~Game(){};
