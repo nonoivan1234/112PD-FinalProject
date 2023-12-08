@@ -58,7 +58,7 @@ Bullet::Bullet(double x, double y) : Character(x, y)
 
 bool Bullet::TouchDeadline()
 {
-    return abs(y - BorderBottom) <= yDiffAcceptable * 2; 
+    return abs(y - BorderBottom) <= yDiffAcceptable * 2;
 }
 
 Player::Player(double x, double y) : Character(x, y)
@@ -156,7 +156,15 @@ Enemy::Enemy(double x, double y) : Character(x, y)
 {
     this->x = x;
     this->y = y;
-    speed = EnemySpeed;
+    speed = NormalEnemySpeed;
+    pic = 'X';
+}
+
+Enemy::Enemy(double x, double y, double speed) : Character(x, y)
+{
+    this->x = x;
+    this->y = y;
+    this->speed = speed;
     pic = 'X';
 }
 
@@ -173,30 +181,73 @@ void Enemy::Move()
     Draw();
 }
 
-
 Game::Game()
 {
     player = new Player((BorderLeft + BorderRight) / 2, BorderBottom);
     gameScore = InitScore;
+    status = 0;
+    EnemySpawnRate = NormalEnemySpawnRate;
+    EnemySpeed = NormalEnemySpeed;
 }
 
-void Game::Run()
+double Game::GetEnemySpawnRate()
 {
-    system("chcp 65001");
-    system("cls");
-
-    Welcome();
-
-    DrawBackground();
-    player->Draw();
-
-    auto startTime = std::chrono::system_clock::now();
-    auto endTime = startTime + std::chrono::seconds(GameTime);
-    auto currentTime = startTime;
-
-    while (std::chrono::system_clock::now() < endTime)
+    if (status == 0)
+        return NormalEnemySpawnRate;
+    else if (status == 1)
+        return MidtermEnemySpawnRate;
+    else if (status == 2)
+        return FinalEnemySpawnRate;
+    else
     {
-        if (gameScore < EndScore)
+        throw("status error");
+        return 0;
+    }
+}
+
+double Game::GetEnemySpeed()
+{
+    if (status == 0)
+        return NormalEnemySpeed;
+    else if (status == 1)
+        return MidtermEnemySpeed;
+    else if (status == 2)
+        return FinalEnemySpeed;
+    else
+    {
+        throw("status error");
+        return 0;
+    }
+}
+
+void Game::ChangeStatus(int status)
+{
+    this->status = status;
+    ChangeEnemySpawnRate();
+    ChangeEnemySpeed();
+}
+
+void Game::ChangeEnemySpeed()
+{
+    EnemySpeed = GetEnemySpeed();
+
+    for (int i = 0; i < (int)enemies.size(); i++)
+    {
+        enemies[i]->speed = EnemySpeed;
+    }
+}
+
+void Game::ChangeEnemySpawnRate()
+{
+    EnemySpawnRate = GetEnemySpawnRate();
+}
+
+
+void Game::GameStart(std::chrono::system_clock::time_point &end)
+{
+    while (std::chrono::system_clock::now() < end)
+    {
+        if (gameScore <= EndScore)
             break;
 
         EnemiesSpawn();
@@ -209,13 +260,68 @@ void Game::Run()
 
         player->Move();
 
-        currentTime = std::chrono::system_clock::now();
-        UpdateInfoBar(gameScore, std::chrono::duration_cast<std::chrono::seconds>(endTime - currentTime));
+        auto nowTime = std::chrono::system_clock::now();
+        int leftTime = std::chrono::duration_cast<std::chrono::seconds>(end - nowTime).count();
 
-        Sleep(DeltaT);
+        if(status == 0) leftTime += MidtermTime + FinalTime;
+        else if(status == 1) leftTime += FinalTime;
+
+        UpdateInfoBar(gameScore, leftTime);
+
+        Sleep(SleepPerLoop);
     }
+}
+void Game::Run()
+{
+    system("chcp 65001");
+    system("cls");
 
-    DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
+    Welcome();
+
+    DrawBackground();
+    player->Draw();
+
+    auto startTime = std::chrono::system_clock::now();
+    auto endTime = startTime + std::chrono::seconds(NormalTime);
+
+    ChangeStatus(0);
+
+    GameStart(endTime);
+
+    DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+    
+    NewWindow("GamePage/mid.txt");
+    Sleep(1500);
+
+    DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+
+    DrawBackground();
+
+    startTime = std::chrono::system_clock::now();
+    endTime = startTime + std::chrono::seconds(MidtermTime);
+    
+    ChangeStatus(1);
+
+    GameStart(endTime);
+
+    DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+
+    NewWindow("GamePage/final.txt");
+    Sleep(1500);
+
+    DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+
+    DrawBackground();
+
+    startTime = std::chrono::system_clock::now();
+    endTime = startTime + std::chrono::seconds(FinalTime);
+    
+    ChangeStatus(2);
+
+    GameStart(endTime);
+
+    DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+    
     GameOver();
 }
 
@@ -223,7 +329,7 @@ void Game::EnemiesSpawn()
 {
     if (rand() % (int)(1.0 / EnemySpawnRate) == 0)
     {
-        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft - 4) + 2, BorderTop));
+        enemies.push_back(new Enemy(BorderLeft + rand() % (int)(BorderRight - BorderLeft - 6) + 3, BorderTop, EnemySpeed));
         enemies[enemies.size() - 1]->Draw();
     }
 }
@@ -303,13 +409,13 @@ void Game::DrawBackground()
     }
 }
 
-void Game::UpdateInfoBar(double gameScore, std::chrono::seconds leftTime)
+void Game::UpdateInfoBar(double gameScore, int leftTime)
 {
     gotoxy(BorderLeft, 0);
     cout << "GPA: " << setw(3) << gameScore;
 
     gotoxy(BorderLeft + 20, 0);
-    cout << "Time: " << setw(2) << leftTime.count() << "s";
+    cout << "Time: " << setw(2) << leftTime << "s";
 }
 
 void Game::UserClick()
@@ -337,11 +443,12 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
             gotoxy(i, j);
             cout << " ";
         }
-        Sleep(2);
+        Sleep(1);
     }
 }
 
-int Game::NewWindow(string File){
+int Game::NewWindow(string File)
+{
     fstream file;
 
     file.open(File, ios::in);
@@ -383,7 +490,7 @@ void Game::ReadNextPage()
 
 void Game::Welcome()
 {
-    NewWindow("welcome.txt");    
+    NewWindow("welcome.txt");
 
     while (1)
     {
@@ -392,15 +499,16 @@ void Game::Welcome()
             char key = getch();
             if (key == 's' || key == 'S')
                 break;
-            if (key == 'r' || key == 'R'){
+            if (key == 'r' || key == 'R')
+            {
                 DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
                 NewWindow("Guide/Page1.txt");
-                
+
                 ReadNextPage();
 
                 DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
                 NewWindow("Guide/Page2.txt");
-                
+
                 ReadNextPage();
                 break;
             }
@@ -415,7 +523,7 @@ void Game::GameOver()
     int i = NewWindow("gameover.txt");
 
     gotoxy((WindowWidth - 18) / 2, BorderBottom / 2 - 5 + i++);
-    cout << "Your score is: " << gameScore << "\n";
+    cout << "Your GPA is: " << gameScore << "\n";
 
     if (gameScore > HistoryMaxScore)
     {
@@ -426,7 +534,7 @@ void Game::GameOver()
     else
     {
         gotoxy((WindowWidth - 23) / 2, BorderBottom / 2 - 5 + i++);
-        cout << "Your best score is: " << HistoryMaxScore << "\n";
+        cout << "Your best GPA is: " << HistoryMaxScore << "\n";
     }
 
     gotoxy((WindowWidth - 28) / 2, BorderBottom / 2 - 5 + i++);

@@ -16,7 +16,7 @@ int HistoryMaxScore = 0;
 #define KEY_LEFT 75
 #define KEY_RIGHT 77
 
-const int DeltaT = 50;
+const int SleepPerLoop = 50;
 const int GameTime = 30;
 const double BorderLeft = 10;
 const double BorderRight = 50;
@@ -290,7 +290,7 @@ void Game::Run()
         currentTime = std::chrono::system_clock::now();
         UpdateInfoBar(gameScore, std::chrono::duration_cast<std::chrono::seconds>(endTime - currentTime));
 
-        Sleep(DeltaT);
+        Sleep(SleepPerLoop);
     }
 
     DrawWhiteSpace(0, 0, BorderRight + 1, BorderBottom + 1);
