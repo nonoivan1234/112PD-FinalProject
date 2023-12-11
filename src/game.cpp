@@ -12,7 +12,7 @@
 #include "game.h"
 using namespace std;
 
-int HistoryMaxScore = 0;
+double HistoryMaxScore = 0;
 
 void gotoxy(double x, double y)
 {
@@ -464,8 +464,8 @@ int Game::NewWindow(string File)
         // keep the text in the middle of the screen
         int pos = (WindowWidth - len) / 2;
 
-        // if (WindowWidth - len < 0)
-        //     throw("Window Width is too small");
+        if (WindowWidth - len < 0)
+            throw("Window Width is too small");
 
         gotoxy(pos, BorderBottom / 2 - 5 + i++);
         cout << line << "\n";
