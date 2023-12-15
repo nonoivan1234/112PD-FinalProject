@@ -8,18 +8,17 @@ const int FinalTime = 20;
 const double InitScore = 4.3;
 const double MinusPerMiss = 0.5;
 const double EndScore = 1;
-const int SleepPerLoop = 50;
-const int GameTime = 30;
+const int SleepPerLoop = 20;
 const double BorderLeft = 10;
 const double BorderRight = 50;
-const double WindowWidth = 120;
+const double WindowWidth = 100;
 const double BorderTop = 2;
 const double BorderBottom = 28;
 const double PlayerSpeed = 4;
 const double BulletSpeed = 0.8;
 const double NormalEnemySpeed = 0.05;
 const double NormalEnemySpawnRate = 0.05;
-const double MidtermEnemySpeed = 0.3;
+const double MidtermEnemySpeed = 0.2;
 const double MidtermEnemySpawnRate = 0.05;
 const double FinalEnemySpeed = 0.3;
 const double FinalEnemySpawnRate = 0.25;
@@ -80,7 +79,7 @@ class Enemy : public Character
 
 private:
     double speed;
-    char pic;
+    std::string pic;
 
 public:
     Enemy(double x, double y);

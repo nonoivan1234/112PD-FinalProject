@@ -14,13 +14,13 @@ using namespace std;
 
 double HistoryMaxScore = 0;
 
-void gotoxy(double x, double y)
+void gotoxy(double x, double y) // to move the cursor to the certain position in the terminal
 {
     COORD coord = {(short)x, (short)y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
-Character::Character(double x, double y)
+Character::Character(double x, double y)    // Character constructor
 {
     this->x = x;
     this->y = y;
@@ -36,23 +36,21 @@ double Character::getY()
     return y;
 }
 
-bool Character::OutOfBorder()
+bool Character::OutOfBorder()   // check if the character is out of the border
 {
     if (y >= BorderBottom - 3 || y < BorderTop)
         return true;
     return false;
 }
 
-void Character::Erase()
+void Character::Erase() // erase the character
 {
     gotoxy(x, y);
-    cout << " ";
+    cout << "  ";
 }
 
 Bullet::Bullet(double x, double y) : Character(x, y)
 {
-    this->x = x;
-    this->y = y;
     this->speed = BulletSpeed;
 }
 
@@ -61,16 +59,12 @@ bool Bullet::TouchDeadline()
     return abs(y - BorderBottom) <= yDiffAcceptable * 2;
 }
 
-Player::Player(double x, double y) : Character(x, y)
-{
-    this->x = x;
-    this->y = y;
-}
+Player::Player(double x, double y) : Character(x, y){}
 
 void Player::Draw()
 {
     gotoxy(x, y);
-    cout << "O";
+    cout << "傑";
 }
 
 void Player::Move()
@@ -135,7 +129,7 @@ void Bullet::explode()
 void Player::Shoot(vector<Bullet *> &bullets)
 {
     bullets.push_back(new Bullet(x, y - 1));
-    bullets[bullets.size() - 1]->Draw();
+    bullets.back()->Draw();
 }
 
 bool Bullet::Hit(Character *character)
@@ -157,7 +151,7 @@ Enemy::Enemy(double x, double y) : Character(x, y)
     this->x = x;
     this->y = y;
     speed = NormalEnemySpeed;
-    pic = 'X';
+    pic = "作";
 }
 
 Enemy::Enemy(double x, double y, double speed) : Character(x, y)
@@ -165,7 +159,7 @@ Enemy::Enemy(double x, double y, double speed) : Character(x, y)
     this->x = x;
     this->y = y;
     this->speed = speed;
-    pic = 'X';
+    pic = "作";
 }
 
 void Enemy::Draw()
@@ -443,7 +437,7 @@ void Game::DrawWhiteSpace(int a_x, int a_y, int b_x, int b_y) // to clean a cert
             gotoxy(i, j);
             cout << " ";
         }
-        Sleep(1);
+        Sleep(0.5);
     }
 }
 
@@ -459,7 +453,7 @@ int Game::NewWindow(string File)
     int i = 0;
     while (getline(file, line))
     {
-        int len = line.length();
+        int len = line.size() / sizeof(char);
 
         // keep the text in the middle of the screen
         int pos = (WindowWidth - len) / 2;
