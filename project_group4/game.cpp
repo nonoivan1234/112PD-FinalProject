@@ -242,7 +242,7 @@ void Game::GameStart(std::chrono::system_clock::time_point &end)
     while (std::chrono::system_clock::now() < end)
     {
         if (gameScore <= EndScore)
-            break;
+            return;
 
         EnemiesSpawn();
 
@@ -283,8 +283,14 @@ void Game::Run()
     GameStart(endTime);
 
     DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
-    
-    NewWindow("GamePage/mid.txt");
+
+    if(gameScore <= EndScore)
+    {
+        GameOver();
+        return;
+    }
+
+    NewWindow("sources/GamePage/mid.txt");
     Sleep(1500);
 
     DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
@@ -300,7 +306,13 @@ void Game::Run()
 
     DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
 
-    NewWindow("GamePage/final.txt");
+    if(gameScore <= EndScore)
+    {
+        GameOver();
+        return;
+    }
+
+    NewWindow("sources/GamePage/final.txt");
     Sleep(1500);
 
     DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
@@ -476,7 +488,7 @@ void Game::ReadNextPage()
         if (kbhit())
         {
             char key = getch();
-            if (key == 'r' || key == 'R')
+            if (key == 'r' || key == 'R' || key == 'o' || key == 'O')
                 break;
         }
     }
@@ -484,7 +496,7 @@ void Game::ReadNextPage()
 
 void Game::Welcome()
 {
-    NewWindow("welcome.txt");
+    NewWindow("sources/GamePage/welcome.txt");
 
     while (1)
     {
@@ -496,12 +508,22 @@ void Game::Welcome()
             if (key == 'r' || key == 'R')
             {
                 DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
-                NewWindow("Guide/Page1.txt");
+                NewWindow("sources/Guide/Page1.txt");
 
                 ReadNextPage();
 
                 DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
-                NewWindow("Guide/Page2.txt");
+                NewWindow("sources/Guide/Page2.txt");
+
+                ReadNextPage();
+
+                DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+                NewWindow("sources/Guide/Page3.txt");
+
+                ReadNextPage();
+
+                DrawWhiteSpace(0, 0, WindowWidth + 1, BorderBottom + 1);
+                NewWindow("sources/Guide/Page4.txt");
 
                 ReadNextPage();
                 break;
@@ -514,18 +536,23 @@ void Game::Welcome()
 
 void Game::GameOver()
 {
-    int i = NewWindow("gameover.txt");
+    int i = NewWindow("sources/GamePage/gameover.txt");
 
     gotoxy((WindowWidth - 18) / 2, BorderBottom / 2 - 5 + i++);
     cout << "Your GPA is: " << gameScore << "\n";
 
-    if (gameScore > HistoryMaxScore)
+    if (gameScore > HistoryMaxScore && gameScore > EndScore)
     {
         HistoryMaxScore = gameScore;
         gotoxy((WindowWidth - 15) / 2, BorderBottom / 2 - 5 + i++);
         cout << "New Record!!!\n";
     }
-    else
+    else if(gameScore <= EndScore)
+    {
+        gotoxy((WindowWidth - 15) / 2, BorderBottom / 2 - 5 + i++);
+        cout << "You didn't pass\n";
+    }
+    else  
     {
         gotoxy((WindowWidth - 23) / 2, BorderBottom / 2 - 5 + i++);
         cout << "Your best GPA is: " << HistoryMaxScore << "\n";

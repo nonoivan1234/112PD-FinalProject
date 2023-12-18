@@ -22,5 +22,3 @@ int main()
     system("pause");
     return 0;
 }
-
-// Note: Online Cool Text Generator: https://www.askapache.com/online-tools/figlet-ascii/
